@@ -1,4 +1,4 @@
-package com.atguigu.ct.weibo.design.pattern.creation.adapter;
+package com.atguigu.ct.weibo.design.pattern.structural.adapter;
 
 /**
  *

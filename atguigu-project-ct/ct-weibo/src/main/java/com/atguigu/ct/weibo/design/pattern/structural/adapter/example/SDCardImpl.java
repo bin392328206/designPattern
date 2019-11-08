@@ -1,4 +1,4 @@
-package com.atguigu.ct.weibo.design.pattern.creation.adapter.example;
+package com.atguigu.ct.weibo.design.pattern.structural.adapter.example;
 
 public class SDCardImpl implements SDCard {
     @Override
