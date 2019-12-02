@@ -82,11 +82,6 @@ public abstract class BaseDao {
                     new HColumnDescriptor(family);
             tableDescriptor.addFamily(columnDescriptor);
         }
-
-        if ( coprocessorClass != null && !"".equals(coprocessorClass) ) {
-            tableDescriptor.addCoprocessor(coprocessorClass);
-        }
-
         // 增加预分区
         if ( regionCount == null || regionCount <= 1 ) {
             admin.createTable(tableDescriptor);

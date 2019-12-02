@@ -23,6 +23,8 @@
         <module>ct-consumer</module>
         <module>ct-hbase</module>
         <module>ct-weibo</module>
+        <module>ct-consumer-coprocessor</module>
+        <module>ct-analysis</module>
     </modules>
 
     <properties>

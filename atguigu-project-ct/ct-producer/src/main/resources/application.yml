@@ -9,6 +9,13 @@ spring:
     url: jdbc:mysql://120.77.175.99:3306/tyh_test?useUnicode=true&characterEncoding=utf8
     username: root
     password: 123456
+  redis:
+    host: 192.168.62.146
+    port: 6379
+  data:
+    redis:
+      repositories:
+        enabled: true
 
 #设置自己启动的端口
 server:
@@ -31,3 +38,6 @@ mybatis-plus:
     refresh-mapper: false
     #数据库大写命名下划线转换
     #capital-mode: true
+
+redisson:
+  address: redis://192.168.62.146:6379

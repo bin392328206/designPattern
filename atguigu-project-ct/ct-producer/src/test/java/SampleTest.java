@@ -1,24 +1,34 @@
 import com.atguigu.ct.producer.Application;
 import com.atguigu.ct.producer.bean.User;
+import com.atguigu.ct.producer.controller.UserController;
 import com.atguigu.ct.producer.mapper.UserMapper;
 import com.atguigu.ct.producer.service.UserService;
 import com.atguigu.ct.producer.service.UserServiceImpl;
+import com.atguigu.ct.producer.utils.RedissLockUtil;
 import com.baomidou.mybatisplus.core.conditions.AbstractWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.sun.org.apache.bcel.internal.generic.NEW;
+import jodd.util.StringUtil;
+import org.apache.hadoop.security.SaslOutputStream;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mortbay.util.ajax.JSON;
+import org.redisson.api.RLock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.sql.Wrapper;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = {Application.class})
@@ -27,6 +37,11 @@ public class SampleTest {
         private UserMapper userMapper;
     @Autowired
     private UserService userService;
+    @Autowired
+  private RedisTemplate redisTemplate;
+
+    @Autowired
+    private UserController userController;
     @Test
     public void testSelect() {
         System.out.println(("----- selectAll method test ------"));
@@ -136,42 +151,7 @@ public class SampleTest {
     }
 
 
-    public static void testCountDownLatch(){
 
-        int threadCount = 10;
-
-        final CountDownLatch latch = new CountDownLatch(threadCount);
-
-        for(int i=0; i< threadCount; i++){
-
-            new Thread(new Runnable() {
-
-                @Override
-                public void run() {
-
-                    System.out.println("线程" + Thread.currentThread().getId() + "开始出发");
-
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-
-                    System.out.println("线程" + Thread.currentThread().getId() + "已到达终点");
-
-                    latch.countDown();
-                }
-            }).start();
-        }
-
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        System.out.println("10个线程已经执行完毕！开始计算排名");
-    }
 
 
 @Test
@@ -226,6 +206,118 @@ public class SampleTest {
         IPage<User> iPage = userMapper.selectPage(userPage, queryWrapper);
         System.out.println(iPage.getRecords().toString());
         System.out.println(iPage.getTotal());
+    }
+
+
+    /**
+     * 可重入的分布式锁  created By 六脉神剑
+     * @return
+     */
+    @Test
+    public void testRedis(){
+        String key="六脉神剑";
+        // 通过key获取value
+        String value = (String) redisTemplate.opsForValue().get(key);
+        if (StringUtil.isEmpty(value)) {
+            String lockKey="一剑断落水";
+            try {
+                boolean locked = RedissLockUtil.tryLock(lockKey, TimeUnit.SECONDS, 5, 10);
+                if (locked) {
+                    System.out.println("我是获得锁的线程，求叫我大佬");
+                    User byId = userService.getById(1);
+                    System.out.println("睡一下,然后把从数据库查到的数据放到redis中,生产环境中没必要睡，我这个是测试");
+                    Thread.sleep(500);
+                    redisTemplate.opsForValue().set(key,"byId");
+                    redisTemplate.delete(lockKey);
+
+                } else {
+                    // 其它线程进来了没获取到锁便等待50ms后重试
+                    System.out.println("我们是没有得到锁的线程，等待一下再试试");
+                    Thread.sleep(50);
+                    testRedis();
+                }
+            } catch (Exception e) {
+
+            } finally {
+                redisTemplate.delete(lockKey);
+            }
+        }
+
+    }
+
+
+    @Test
+    public void TestLock(){
+
+        for (int i=0;i<=10;i++){
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    System.out.println("我是线程"+Thread.currentThread().getName());
+                    userController.testRedis();
+                }
+            }).start();
+        }
+        System.out.println("aaaa");
+    }
+
+
+    @Test
+    public void testCountDownLatch() {
+
+        int threadCount = 100;
+
+        final CountDownLatch latch = new CountDownLatch(threadCount);
+
+        for (int i = 0; i < threadCount; i++) {
+
+            new Thread(new Runnable() {
+
+                @Override
+                public void run() {
+
+                    System.out.println("线程" + Thread.currentThread().getId() + "开始出发");
+
+                    try {
+                        userController.testRedis();
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
+                    System.out.println("线程" + Thread.currentThread().getId() + "已到达终点");
+
+                    latch.countDown();
+                }
+            }).start();
+        }
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("10个线程已经执行完毕！开始计算排名");
+    }
+
+
+    @Test
+    public void TestBitMap(){
+
+        List<String> goodsId = new ArrayList<String>();
+        goodsId.add("201912010001");
+        goodsId.add("20191201002");
+        goodsId.add("20191201003");
+        goodsId.add("20191201004");
+
+        long index = Math.abs((long) (goodsId.get(3).hashCode()));
+        System.out.println(index);
+        redisTemplate.opsForValue().setBit("goodsIdBit",index,true);
+        Boolean aBoolean = redisTemplate.opsForValue().getBit("goodsIdBit", index);
+        System.out.println(aBoolean);
+
+
     }
 
 

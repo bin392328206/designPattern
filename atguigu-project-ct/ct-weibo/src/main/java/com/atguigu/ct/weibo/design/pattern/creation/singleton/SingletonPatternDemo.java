@@ -1,6 +1,8 @@
 package com.atguigu.ct.weibo.design.pattern.creation.singleton;
 
 
+import com.atguigu.ct.weibo.design.pattern.creation.singleton.mei.Response;
+import lombok.Data;
 import org.apache.hadoop.yarn.webapp.hamlet.Hamlet;
 
 /**
@@ -40,5 +42,8 @@ public class SingletonPatternDemo {
 
         Singleton instance = Singleton.INSTANCE;
         instance.whateverMethod();
+
     }
+
+
 }
