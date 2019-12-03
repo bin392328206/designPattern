@@ -22,9 +22,12 @@ import org.redisson.api.RLock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import javax.annotation.Resource;
 import java.sql.Wrapper;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
@@ -39,6 +42,11 @@ public class SampleTest {
     private UserService userService;
     @Autowired
   private RedisTemplate redisTemplate;
+
+    @Resource
+    private DefaultRedisScript<Boolean> redisScript;
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
 
     @Autowired
     private UserController userController;
@@ -318,6 +326,17 @@ public class SampleTest {
         System.out.println(aBoolean);
 
 
+    }
+
+
+    @Test
+    public void TestLua(){
+        System.out.println("测试Lua开始");
+        List<String> keys = Arrays.asList("testLua", "hello六脉神剑");
+        Boolean execute = stringRedisTemplate.execute(redisScript, keys, "10000");
+        System.out.println("测试Lua结束，并在下面打印结果");
+        String testLua = stringRedisTemplate.opsForValue().get("testLua");
+        System.out.println("结果是:"+testLua);
     }
 
 
